@@ -85,13 +85,13 @@ az deployment create \
                 resourceGroupLocation=$LOCATION
 
 export IDENTITIES_DEPLOYMENT_NAME=$(az deployment show -n azuredeploy-prereqs-dev --query properties.outputs.identitiesDeploymentName.value -o tsv) && \
-export DELIVERY_ID_NAME=$(az group deployment show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.deliveryIdName.value -o tsv) && \
+export DELIVERY_ID_NAME=$(az deployment group show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.deliveryIdName.value -o tsv) && \
 export DELIVERY_ID_PRINCIPAL_ID=$(az identity show -g $RESOURCE_GROUP -n $DELIVERY_ID_NAME --query principalId -o tsv) && \
-export DRONESCHEDULER_ID_NAME=$(az group deployment show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.droneSchedulerIdName.value -o tsv) && \
+export DRONESCHEDULER_ID_NAME=$(az deployment group show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.droneSchedulerIdName.value -o tsv) && \
 export DRONESCHEDULER_ID_PRINCIPAL_ID=$(az identity show -g $RESOURCE_GROUP -n $DRONESCHEDULER_ID_NAME --query principalId -o tsv) && \
-export WORKFLOW_ID_NAME=$(az group deployment show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.workflowIdName.value -o tsv) && \
+export WORKFLOW_ID_NAME=$(az deployment group show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.workflowIdName.value -o tsv) && \
 export WORKFLOW_ID_PRINCIPAL_ID=$(az identity show -g $RESOURCE_GROUP -n $WORKFLOW_ID_NAME --query principalId -o tsv) && \
-export RESOURCE_GROUP_ACR=$(az group deployment show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.acrResourceGroupName.value -o tsv)
+export RESOURCE_GROUP_ACR=$(az deployment group show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.acrResourceGroupName.value -o tsv)
 
 # Wait for AAD propagation
 until az ad sp show --id ${DELIVERY_ID_PRINCIPAL_ID} &> /dev/null ; do echo "Waiting for AAD propagation" && sleep 5; done
@@ -102,7 +102,7 @@ until az ad sp show --id ${WORKFLOW_ID_PRINCIPAL_ID} &> /dev/null ; do echo "Wai
 export KUBERNETES_VERSION=$(az aks get-versions -l $LOCATION --query "orchestrators[?default!=null].orchestratorVersion" -o tsv)
 
 # Deploy all other resources
-az group deployment create -g $RESOURCE_GROUP --name azuredeploy-dev --template-file ${PROJECT_ROOT}/azuredeploy.json \
+az deployment group create -g $RESOURCE_GROUP --name azuredeploy-dev --template-file ${PROJECT_ROOT}/azuredeploy.json \
 --parameters servicePrincipalClientId=${SP_APP_ID} \
             servicePrincipalClientSecret=${SP_CLIENT_SECRET} \
             servicePrincipalId=${SP_OBJECT_ID} \
@@ -121,9 +121,9 @@ az group deployment create -g $RESOURCE_GROUP --name azuredeploy-dev --template-
 Get outputs from Azure Deploy
 ```bash
 # Shared
-export ACR_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.acrName.value -o tsv) && \
+export ACR_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.acrName.value -o tsv) && \
 export ACR_SERVER=$(az acr show -n $ACR_NAME --query loginServer -o tsv) && \
-export CLUSTER_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.aksClusterName.value -o tsv)
+export CLUSTER_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.aksClusterName.value -o tsv)
 ```
 
 Download kubectl and create a k8s namespace
@@ -153,7 +153,7 @@ Integrate Application Insights instance
 
 ```bash
 # Acquire Instrumentation Key
-export AI_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.appInsightsName.value -o tsv)
+export AI_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.appInsightsName.value -o tsv)
 export AI_IKEY=$(az resource show \
                     -g $RESOURCE_GROUP \
                     -n $AI_NAME \
@@ -215,10 +215,10 @@ kubectl apply -f $K8S/k8s-resource-quotas-dev.yaml
 Extract resource details from deployment
 
 ```bash
-export COSMOSDB_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.deliveryCosmosDbName.value -o tsv) && \
+export COSMOSDB_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.deliveryCosmosDbName.value -o tsv) && \
 export DATABASE_NAME="${COSMOSDB_NAME}-db" && \
 export COLLECTION_NAME="${DATABASE_NAME}-col" && \
-export DELIVERY_KEYVAULT_URI=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.deliveryKeyVaultUri.value -o tsv)
+export DELIVERY_KEYVAULT_URI=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.deliveryKeyVaultUri.value -o tsv)
 ```
 
 Build the Delivery service
@@ -242,7 +242,7 @@ Deploy the Delivery service:
 
 ```bash
 # Extract pod identity outputs from deployment
-export DELIVERY_PRINCIPAL_RESOURCE_ID=$(az group deployment show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.deliveryPrincipalResourceId.value -o tsv) && \
+export DELIVERY_PRINCIPAL_RESOURCE_ID=$(az deployment group show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.deliveryPrincipalResourceId.value -o tsv) && \
 export DELIVERY_PRINCIPAL_CLIENT_ID=$(az identity show -g $RESOURCE_GROUP -n $DELIVERY_ID_NAME --query clientId -o tsv)
 export DELIVERY_INGRESS_TLS_SECRET_NAME=delivery-ingress-tls
 
@@ -278,7 +278,7 @@ helm status delivery-v0.1.0-dev
 Extract resource details from deployment
 
 ```bash
-export COSMOSDB_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.packageMongoDbName.value -o tsv)
+export COSMOSDB_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.packageMongoDbName.value -o tsv)
 ```
 
 Build the Package service
@@ -328,7 +328,7 @@ helm status package-v0.1.0-dev
 Extract resource details from deployment
 
 ```bash
-export WORKFLOW_KEYVAULT_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.workflowKeyVaultName.value -o tsv)
+export WORKFLOW_KEYVAULT_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.workflowKeyVaultName.value -o tsv)
 ```
 
 Build the workflow service
@@ -348,7 +348,7 @@ Create and set up pod identity
 
 ```bash
 # Extract outputs from deployment
-export WORKFLOW_PRINCIPAL_RESOURCE_ID=$(az group deployment show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.workflowPrincipalResourceId.value -o tsv) && \
+export WORKFLOW_PRINCIPAL_RESOURCE_ID=$(az deployment group show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.workflowPrincipalResourceId.value -o tsv) && \
 export WORKFLOW_PRINCIPAL_CLIENT_ID=$(az identity show -g $RESOURCE_GROUP -n $WORKFLOW_ID_NAME --query clientId -o tsv)
 ```
 
@@ -381,9 +381,9 @@ helm status workflow-v0.1.0-dev
 Extract resource details from deployment
 
 ```bash
-export INGESTION_QUEUE_NAMESPACE=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.ingestionQueueNamespace.value -o tsv) && \
-export INGESTION_QUEUE_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.ingestionQueueName.value -o tsv)
-export INGESTION_ACCESS_KEY_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.ingestionServiceAccessKeyName.value -o tsv)
+export INGESTION_QUEUE_NAMESPACE=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.ingestionQueueNamespace.value -o tsv) && \
+export INGESTION_QUEUE_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.ingestionQueueName.value -o tsv)
+export INGESTION_ACCESS_KEY_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.ingestionServiceAccessKeyName.value -o tsv)
 export INGESTION_ACCESS_KEY_VALUE=$(az servicebus namespace authorization-rule keys list --resource-group $RESOURCE_GROUP --namespace-name $INGESTION_QUEUE_NAMESPACE --name $INGESTION_ACCESS_KEY_NAME --query primaryKey -o tsv)
 ```
 
@@ -438,8 +438,8 @@ helm status ingestion-v0.1.0-dev
 Extract resource details from deployment
 
 ```bash
-export DRONESCHEDULER_KEYVAULT_URI=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.droneSchedulerKeyVaultUri.value -o tsv)
-export DRONESCHEDULER_COSMOSDB_NAME=$(az group deployment show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.droneSchedulerCosmosDbName.value -o tsv) && \
+export DRONESCHEDULER_KEYVAULT_URI=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.droneSchedulerKeyVaultUri.value -o tsv)
+export DRONESCHEDULER_COSMOSDB_NAME=$(az deployment group show -g $RESOURCE_GROUP -n azuredeploy-dev --query properties.outputs.droneSchedulerCosmosDbName.value -o tsv) && \
 export ENDPOINT_URL=$(az cosmosdb show -n $DRONESCHEDULER_COSMOSDB_NAME -g $RESOURCE_GROUP --query documentEndpoint -o tsv) && \
 export AUTH_KEY=$(az cosmosdb list-keys -n $DRONESCHEDULER_COSMOSDB_NAME -g $RESOURCE_GROUP --query primaryMasterKey -o tsv) && \
 export DATABASE_NAME="invoicing" && \
@@ -456,7 +456,7 @@ Create and set up pod identity
 
 ```bash
 # Extract outputs from deployment
-export DRONESCHEDULER_PRINCIPAL_RESOURCE_ID=$(az group deployment show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.droneSchedulerPrincipalResourceId.value -o tsv) && \
+export DRONESCHEDULER_PRINCIPAL_RESOURCE_ID=$(az deployment group show -g $RESOURCE_GROUP -n $IDENTITIES_DEPLOYMENT_NAME --query properties.outputs.droneSchedulerPrincipalResourceId.value -o tsv) && \
 export DRONESCHEDULER_PRINCIPAL_CLIENT_ID=$(az identity show -g $RESOURCE_GROUP -n $DRONESCHEDULER_ID_NAME --query clientId -o tsv)
 ```
 
